@@ -4,13 +4,13 @@ $api_username = "RRpY9SSrfznkOjDoXwy48ycfKXXZYdXKdoACCshwRVgvwMnaDAZYGiAZ0aZLAdx
 $api_password = "ijdh3FqGKllb1JOGNwrK93lSnvVXDxRBCU4WFDoNLXibvaIb41FjYvb927fyLlvgZb3i4fKtNWtLF5xFmqttTkPSeL2T23BpJZoczW7FecdlVt29aLqY0uju1ln87TDYYwQyDEMQRB0eIpr28hcFfKMVpRSsOhceDIHLrXzgdrAuas2JHWpJtU9y6Vs70sxEWPKmThTfuNbwZrGCieGmDrDraXP1OymYGFOBK2P4GcOXh6TS2fxq7KMkTmylECK"; // রিসেলার প্যানেলের API কী
 $url = "https://panel.myownfreehost.net/xml-api/createacct.php";
 
-// ২. ডাটা তৈরি (আপনার ফর্ম থেকে আসা ডাটা)
+// ২. ডাটা তৈরি (সংশোধিত)
 $data = array(
-    'username' => $_POST['username'] ?? 'testuser' . rand(10,99),
+    'username' => substr($_POST['username'] ?? 'user' . rand(100,999), 0, 8), // সর্বোচ্চ ৮ অক্ষর নিশ্চিত করা
     'password' => $_POST['password'] ?? 'pass123456',
     'contactemail' => $_POST['email'] ?? 'test@example.com',
-    'domain' => ($_POST['username'] ?? 'testuser') . '.zhost.eu.org',
-    'plan' => 'Freetest' // আপনার তৈরি করা প্ল্যান নাম
+    'domain' => (substr($_POST['username'] ?? 'user', 0, 8)) . '.zhost.eu.org',
+    'plan' => 'আপনার_সঠিক_প্ল্যান_নাম' // আপনার প্যানেলে যে নাম আছে সেটি দিন
 );
 
 // ৩. CURL শুরু
