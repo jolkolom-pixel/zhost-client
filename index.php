@@ -10,7 +10,7 @@ $data = array(
     'password' => $_POST['password'] ?? 'pass123456',
     'contactemail' => $_POST['email'] ?? 'test@example.com',
     'domain' => (substr($_POST['username'] ?? 'user', 0, 8)) . '.zhost.eu.org',
-    'plan' => 'আপনার_সঠিক_প্ল্যান_নাম' // আপনার প্যানেলে যে নাম আছে সেটি দিন
+    'plan' => 'plan1' // আপনার প্যানেলে যে নাম আছে সেটি দিন
 );
 
 // ৩. CURL শুরু
