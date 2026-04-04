@@ -1,61 +1,133 @@
 <?php
 /**
- * ZHost API Bridge - Secure Version
- * This file handles requests only from your Dashboard.
+ * ZHost API Bridge (Render)
+ * FINAL STABLE VERSION
  */
 
-// ১. রিসেলার ক্রেডেনশিয়াল
-$api_username = "RRpY9SSrfznkOjDoXwy48ycfKXXZYdXKdoACCshwRVgvwMnaDAZYGiAZ0aZLAdxdIOJHGSqMAGmQ7Q4UnZeWsTK2AaA03y8XY41CfWY3mpkjGM3BBnEISlDJ4HghwrGKM7Nl6fsEaUBJj2wuMBdhr10uqjFERnbthtpmYV8dEdY8enw4UTdx4rEassydMjwARuj0xzyY5Zh3lZFbuARRUbXI9AoPuDssuinePArcncmkdWdR9oUpNv9e1LOKYuX"; 
-$api_password = "ijdh3FqGKllb1JOGNwrK93lSnvVXDxRBCU4WFDoNLXibvaIb41FjYvb927fyLlvgZb3i4fKtNWtLF5xFmqttTkPSeL2T23BpJZoczW7FecdlVt29aLqY0uju1ln87TDYYwQyDEMQRB0eIpr28hcFfKMVpRSsOhceDIHLrXzgdrAuas2JHWpJtU9y6Vs70sxEWPKmThTfuNbwZrGCieGmDrDraXP1OymYGFOBK2P4GcOXh6TS2fxq7KMkTmylECK"; 
+// ================= CONFIG =================
+$api_username = getenv('MOFH_USER') ?: "RRpY9SSrfznkOjDoXwy48ycfKXXZYdXKdoACCshwRVgvwMnaDAZYGiAZ0aZLAdxdIOJHGSqMAGmQ7Q4UnZeWsTK2AaA03y8XY41CfWY3mpkjGM3BBnEISlDJ4HghwrGKM7Nl6fsEaUBJj2wuMBdhr10uqjFERnbthtpmYV8dEdY8enw4UTdx4rEassydMjwARuj0xzyY5Zh3lZFbuARRUbXI9AoPuDssuinePArcncmkdWdR9oUpNv9e1LOKYuX";
+$api_password = getenv('MOFH_PASS') ?: "ijdh3FqGKllb1JOGNwrK93lSnvVXDxRBCU4WFDoNLXibvaIb41FjYvb927fyLlvgZb3i4fKtNWtLF5xFmqttTkPSeL2T23BpJZoczW7FecdlVt29aLqY0uju1ln87TDYYwQyDEMQRB0eIpr28hcFfKMVpRSsOhceDIHLrXzgdrAuas2JHWpJtU9y6Vs70sxEWPKmThTfuNbwZrGCieGmDrDraXP1OymYGFOBK2P4GcOXh6TS2fxq7KMkTmylECK";
+$plan_name    = "plan1";
 
-// ২. ডাটা ফেচ করা (Get Statistics) - ড্যাশবোর্ডের জন্য
-if (isset($_GET['action']) && $_GET['action'] == 'get_stats' && isset($_GET['hosting_user'])) {
+// ================= HELPER FUNCTION =================
+function mofh_request($url, $post_data = null, $api_username, $api_password) {
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    if ($post_data) {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+    }
+
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Basic " . base64_encode($api_username . ":" . $api_password)
+    ]);
+
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        return ['error' => curl_error($ch)];
+    }
+
+    curl_close($ch);
+    return ['response' => $response];
+}
+
+// ================= ROUTER =================
+$action = $_GET['action'] ?? null;
+
+
+// =====================================================
+// 🟢 CREATE ACCOUNT
+// =====================================================
+if ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $raw_user = $_POST['username'] ?? '';
+    $email    = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if (!$raw_user || !$email || !$password) {
+        echo json_encode(['success' => false, 'message' => 'Missing fields']);
+        exit;
+    }
+
+    // Clean username
+    $clean_user = substr(preg_replace("/[^A-Za-z0-9]/", '', $raw_user), 0, 8);
+    $domain     = $clean_user . ".zhost.eu.org";
+
+    $url = "https://panel.myownfreehost.net/xml-api/createacct.php";
+
+    $data = [
+        'username'     => $clean_user,
+        'password'     => $password,
+        'contactemail' => $email,
+        'domain'       => $domain,
+        'plan'         => $plan_name
+    ];
+
+    $result = mofh_request($url, $data, $api_username, $api_password);
+
+    if (isset($result['error'])) {
+        echo json_encode(['success' => false, 'message' => $result['error']]);
+        exit;
+    }
+
+    // Return raw XML (dashboard will parse)
+    echo $result['response'];
+    exit;
+}
+
+
+// =====================================================
+// 🔵 GET USER STATS
+// =====================================================
+if ($action === 'get_stats' && isset($_GET['hosting_user'])) {
+
     header('Content-Type: application/json');
+
     $user = $_GET['hosting_user'];
-    $stats_url = "https://panel.myownfreehost.net/xml-api/getstats.php?user=" . urlencode($user);
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $stats_url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Basic " . base64_encode($api_username . ":" . $api_password)]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    $response = curl_exec($ch);
-    curl_close($ch);
+    if (!$user) {
+        echo json_encode(['success' => false, 'message' => 'No username']);
+        exit;
+    }
 
-    echo json_encode(['raw_xml' => $response]);
+    $url = "https://panel.myownfreehost.net/xml-api/panel.php?" . http_build_query([
+        'action'   => 'stats',
+        'username' => $user
+    ]);
+
+    $result = mofh_request($url, null, $api_username, $api_password);
+
+    if (isset($result['error'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => $result['error']
+        ]);
+        exit;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'raw_xml' => $result['response']
+    ]);
+
     exit;
 }
 
-// ৩. অ্যাকাউন্ট তৈরি করা (Create Account) - শুধুমাত্র POST রিকোয়েস্টের জন্য
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] == 'create') {
-    $create_url = "https://panel.myownfreehost.net/xml-api/createacct.php";
-    
-    // ড্যাশবোর্ড থেকে আসা ডাটা রিসিভ করা
-    $data = array(
-        'username'     => substr(preg_replace("/[^A-Za-z0-9]/", '', $_POST['username']), 0, 8),
-        'password'     => $_POST['password'],
-        'contactemail' => $_POST['email'],
-        'domain'       => $_POST['username'] . ".zhost.eu.org",
-        'plan'         => "plan1"
-    );
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $create_url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Basic " . base64_encode($api_username . ":" . $api_password)]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    $response = curl_exec($ch);
-    curl_close($ch);
-
-    echo $response; // ড্যাশবোর্ডকে Raw XML ব্যাক করবে
-    exit;
-}
-
-// যদি কেউ সরাসরি ব্রাউজারে লিঙ্ক ওপেন করে, তাকে খালি পেজ বা এরর দেখাবে
-header("HTTP/1.1 403 Forbidden");
-echo "Direct access is not allowed.";
+// =====================================================
+// ❌ BLOCK DIRECT ACCESS
+// =====================================================
+http_response_code(403);
+echo json_encode([
+    'success' => false,
+    'message' => 'Invalid request'
+]);
 exit;
 ?>
