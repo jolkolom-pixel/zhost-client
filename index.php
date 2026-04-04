@@ -99,24 +99,16 @@ if ($action === 'get_stats') {
 
     $user = $_GET['hosting_user'] ?? '';
 
-    // 🔴 Debug if missing
     if (empty($user) || $user === 'N/A') {
         echo json_encode([
             'success' => false,
-            'message' => 'Invalid or empty hosting_user',
-            'received' => [
-                'action' => $action,
-                'hosting_user' => $user,
-                'method' => $_SERVER['REQUEST_METHOD']
-            ]
+            'message' => 'Invalid or empty hosting_user'
         ]);
         exit;
     }
 
-    $url = "https://panel.myownfreehost.net/xml-api/panel.php?" . http_build_query([
-        'action'   => 'stats',
-        'username' => $user
-    ]);
+    // ✅ CORRECT ENDPOINT FOR YOUR SERVER
+    $url = "https://panel.myownfreehost.net/xml-api/getstats.php?user=" . urlencode($user);
 
     $result = mofh_request($url, null, $api_username, $api_password);
 
@@ -128,12 +120,12 @@ if ($action === 'get_stats') {
         exit;
     }
 
-    // 🔴 If API returns empty
-    if (empty($result['response'])) {
+    // 🔥 detect 404 response
+    if (strpos($result['response'], '404 Not Found') !== false) {
         echo json_encode([
             'success' => false,
-            'message' => 'Empty response from MOFH',
-            'user' => $user
+            'message' => 'MOFH endpoint not found (server limitation)',
+            'raw' => $result['response']
         ]);
         exit;
     }
