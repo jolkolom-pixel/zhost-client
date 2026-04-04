@@ -4,19 +4,18 @@
  * Target Domain: client.zhost.eu.org
  */
 
-// ১. আপনার রিসেলার ক্রেডেনশিয়াল (আপনার প্যানেল থেকে নিশ্চিত হয়ে নিন)
-$api_username = "RRpY9SSrfznkOjDoXwy48ycfKXXZYdXKdoACCshwRVgvwMnaDAZYGiAZ0aZLAdxdIOJHGSqMAGmQ7Q4UnZeWsTK2AaA03y8XY41CfWY3mpkjGM3BBnEISlDJ4HghwrGKM7Nl6fsEaUBJj2wuMBdhr10uqjFERnbthtpmYV8dEdY8enw4UTdx4rEassydMjwARuj0xzyY5Zh3lZFbuARRUbXI9AoPuDssuinePArcncmkdWdR9oUpNv9e1LOKYuX"; // উদাহরণ: mofh_12345678
-$api_password = "ijdh3FqGKllb1JOGNwrK93lSnvVXDxRBCU4WFDoNLXibvaIb41FjYvb927fyLlvgZb3i4fKtNWtLF5xFmqttTkPSeL2T23BpJZoczW7FecdlVt29aLqY0uju1ln87TDYYwQyDEMQRB0eIpr28hcFfKMVpRSsOhceDIHLrXzgdrAuas2JHWpJtU9y6Vs70sxEWPKmThTfuNbwZrGCieGmDrDraXP1OymYGFOBK2P4GcOXh6TS2fxq7KMkTmylECK"; // রিসেলার প্যানেলের API Key
-$plan_name    = "plan1";               // আপনার দেয়া প্ল্যান নাম
+// ১. আপনার রিসেলার ক্রেডেনশিয়াল
+$api_username = "RRpY9SSrfznkOjDoXwy48ycfKXXZYdXKdoACCshwRVgvwMnaDAZYGiAZ0aZLAdxdIOJHGSqMAGmQ7Q4UnZeWsTK2AaA03y8XY41CfWY3mpkjGM3BBnEISlDJ4HghwrGKM7Nl6fsEaUBJj2wuMBdhr10uqjFERnbthtpmYV8dEdY8enw4UTdx4rEassydMjwARuj0xzyY5Zh3lZFbuARRUbXI9AoPuDssuinePArcncmkdWdR9oUpNv9e1LOKYuX"; 
+$api_password = "ijdh3FqGKllb1JOGNwrK93lSnvVXDxRBCU4WFDoNLXibvaIb41FjYvb927fyLlvgZb3i4fKtNWtLF5xFmqttTkPSeL2T23BpJZoczW7FecdlVt29aLqY0uju1ln87TDYYwQyDEMQRB0eIpr28hcFfKMVpRSsOhceDIHLrXzgdrAuas2JHWpJtU9y6Vs70sxEWPKmThTfuNbwZrGCieGmDrDraXP1OymYGFOBK2P4GcOXh6TS2fxq7KMkTmylECK"; 
+$plan_name    = "plan1";               
 $url          = "https://panel.myownfreehost.net/xml-api/createacct.php";
 
-// ২. ইনপুট হ্যান্ডেল করা (ইউজার ফর্ম থেকে আসলে)
+// ২. ইনপুট হ্যান্ডেল করা
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $raw_user = $_POST['username'] ?? 'user' . rand(10, 99);
     $email    = $_POST['email'] ?? 'test' . rand(10, 99) . '@gmail.com';
     $password = $_POST['password'] ?? 'pass' . rand(1000, 9999);
 
-    // MOFH-এর জন্য ইউজারনেম অবশ্যই ৮ অক্ষরের নিচে হতে হবে
     $clean_user = substr(preg_replace("/[^A-Za-z0-9]/", '', $raw_user), 0, 8);
     $domain     = $clean_user . ".zhost.eu.org";
 
@@ -36,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
 
-    // হেডার সেটআপ (Auth এবং User-Agent)
     $headers = array(
         "Authorization: Basic " . base64_encode($api_username . ":" . $api_password),
         "Content-Type: application/x-www-form-urlencoded",
@@ -47,13 +45,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
     $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // ৫. রেজাল্ট ডিসপ্লে
+    // --- ৫. ড্যাশবোর্ডের জন্য আসল আউটপুট পাঠানো ---
+    // যদি রিকোয়েস্টটি আমাদের ড্যাশবোর্ড (PHP) থেকে আসে, তবে শুধু Raw XML রিটার্ন করো
+    if (isset($_GET['action']) && $_GET['action'] == 'create') {
+        echo $response; // এটিই 'ootsg_...' আইডিটি পাঠাবে
+        exit;
+    }
+
+    // সাধারণ ইউজারের জন্য সুন্দর মেসেজ
     echo "<h2>Registration Result for $domain</h2>";
     if (strpos($response, '<status>1</status>') !== false) {
         echo "<b style='color:green;'>Success! Your account is being created. Please check your email.</b>";
+        // আইডির প্রমাণ হিসেবে লুকিয়ে আইডিটা ইকো করছি
+        echo "";
     } else {
         echo "<b style='color:red;'>Error!</b><br>";
         echo "<pre>" . htmlspecialchars($response) . "</pre>";
