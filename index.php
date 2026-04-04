@@ -15,10 +15,13 @@ function mofh_request($url, $api_username, $api_password) {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
     curl_close($ch);
-    return ['res' => $response, 'code' => $http_code];
+    
+    return ['res' => $response, 'code' => $http_code, 'error' => $curl_error];
 }
 
 $action = $_GET['action'] ?? null;
@@ -27,23 +30,27 @@ if ($action === 'get_stats' && isset($_GET['hosting_user'])) {
     header('Content-Type: application/json');
     $user = $_GET['hosting_user'];
 
-    // স্ক্রিনশটে দেওয়া নির্দিষ্ট আইপি ও পোর্ট ব্যবহার করা হয়েছে
+    // স্ক্রিনশটে দেওয়া আপনার নির্দিষ্ট API সার্ভার আইপি
     $url = "https://198.251.88.119:2087/xml-api/getstats?user=" . urlencode($user);
 
     $result = mofh_request($url, $api_username, $api_password);
 
-    if (strpos($result['res'], '<quotalimit>') !== false) {
+    if ($result['code'] == 200 && strpos($result['res'], '<quotalimit>') !== false) {
         echo json_encode(['success' => true, 'raw_xml' => $result['res']]);
     } else {
         echo json_encode([
             'success' => false, 
-            'message' => 'Failed to fetch data. Check if Render IP is whitelisted.',
-            'debug_info' => [
-                'http_code' => $result['code'],
-                'render_ip' => $_SERVER['SERVER_ADDR'] ?? 'Unknown'
-            ]
+            'message' => 'Connection Failed',
+            'http_code' => $result['code'],
+            'curl_error' => $result['error'],
+            'your_render_ip' => file_get_contents('https://api.ipify.org') // আইপি শনাক্ত করতে সাহায্য করবে
         ]);
     }
     exit;
+}
+// আপনার বর্তমান রেন্ডার আইপি জানতে এটি কল করুন
+$current_ip = file_get_contents('https://api.ipify.org');
+if (isset($_GET['check_ip'])) {
+    die("আপনার বর্তমান রেন্ডার আইপি: " . $current_ip);
 }
 ?>
