@@ -30,8 +30,8 @@ if ($action === 'get_stats' && isset($_GET['hosting_user'])) {
     header('Content-Type: application/json');
     $user = $_GET['hosting_user'];
 
-    // স্ক্রিনশটে দেওয়া আপনার নির্দিষ্ট API সার্ভার আইপি
-    $url = "https://198.251.88.119:2087/xml-api/getstats?user=" . urlencode($user);
+// ২০৮৭ পোর্ট সরিয়ে শুধু HTTPS ট্রাই করা
+$url = "https://198.251.88.119/xml-api/getstats?user=" . urlencode($user);
 
     $result = mofh_request($url, $api_username, $api_password);
 
